@@ -2,67 +2,84 @@ package storage
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/jackc/pgx/v4/pgxpool" // The sql package must be used in conjunction with a database driver.
-	"github.com/Feride3d/banner-rotation-service/internal/service/mab"
-	"github.com/Feride3d/banner-rotation-service/internal/storage/models"
+	"github.com/pkg/errors"
 )
 
-	// connection to database 
-	func initHandlers(pool *pgxpool.Pool) http.Handler { // the connection pool for concurrency
-		r := mux.NewRouter()
-	dbpool, err := pgxpool.Connect(context.Background(), dbURL) 
+// Connection to database
+
+type Storage struct {
+	db *sqlx.DB
+}
+
+func New() *Storage {
+	return &Storage{}
+}
+
+func (s *Storage) Connect(ctx context.Context, connStr string) error {
+	dbase, err := sqlx.ConnectContext(ctx, "pgx", connStr)
 	if err != nil {
-		log.Fatalf("Unable to connect to database: %v", err)
+		return fmt.Errorf("Unable to connect to database: %v", err)
 	}
-	defer dbpool.Close()
-	log.Infof("Connected")
+	s.db = dbase
+	return nil
+}
 
+func (s *Storage) Close(ctx context.Context) error {
+	return s.db.Close()
+}
 
-func (s *Storage) AddBanner(bannerID string, slotID string) error {
-	_, err := s.dbpool.Exec(context.Background(), "INSERT INTO banner_location (banner_id,slot_id) VALUES ($1,$2)", bannerID, slotID)
+/* // изучить вариант замены на pool.connect для concurrency
+dbUrl := "postgres://postgres:mypassword@localhost:5432/postgres"
+dbpool, err := pgxpool.Connect(context.Background(), dbUrl)
+if err != nil {
+	log.Fatalf("Unable to connect to database: %v", err)
+}
+defer dbpool.Close() // close DB pool
+log.Println("Connected") */
+
+func (s *Storage) AddBanner(ctx context.Context, bannerID string, slotID string) error {
+	_, err := s.db.ExecContext(ctx, "INSERT INTO banner_location (banner_id,slot_id) VALUES ($1,$2)", bannerID, slotID)
 	if err != nil {
-		return fmt.Errorf("unable to add banner on slot for rotation, %w", err)
+		return errors.Wrapf(err, "unable to add banner on slot for rotation, %w")
 	}
 
 	return nil
 }
 
-func (s *Storage) DeleteBanner(bannerID string, slotID string) error { 
-	result, err := s.dbpool.Exec(context.Background(), "DELETE FROM banners_location WHERE banner_id=$1 AND slot_id=$2", bannerID, slotID)
+func (s *Storage) DeleteBanner(ctx context.Context, bannerID string, slotID string) error {
+	result, err := s.db.ExecContext(ctx, "DELETE FROM banners_location WHERE banner_id=$1 AND slot_id=$2", bannerID, slotID)
 	if err != nil {
-		return fmt.Errorf("unable to delete banner from slot, %w", err)
+		return errors.Wrapf(err, "unable to delete banner from slot, %w")
 	}
-
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("unable to get numder of affected rows, %w", err)
+		return errors.Wrapf(err, "unable to get numder of affected rows, %w")
 	}
 
 	if rows <= 0 {
-		return fmt.Errorf("rows are not affected, %w", err)
+		return errors.Wrapf(err, "rows are not affected, %w")
 	}
 
 	return nil
 }
 
-func (s *Storage) AddClick(bannerID string, slotID string, groupID string) error {
-	_, err := s.dbpool.Exec(context.Background(), "INSERT INTO clicks (banner_id,slot_id,group_id) VALUES ($1,$2,$3)", bannerID, slotID, groupID)
+func (s *Storage) AddClick(ctx context.Context, bannerID string, slotID string, groupID string) error {
+	_, err := s.db.ExecContext(ctx, "INSERT INTO clicks (banner_id,slot_id,group_id) VALUES ($1,$2,$3)", bannerID, slotID, groupID)
 	if err != nil {
-		return fmt.Errorf("unable to add banner click, %w", err)
+		return errors.Wrapf(err, "unable to add banner click, %w")
 	}
 
 	return nil
 }
 
-func (s *Storage) AddBannerDisplay(slotID string, groupID string) (mab.Ucb int, err error) {
-	_, err := s.dbpool.Exec(context.Background(), "INSERT INTO views (banner_id, slot_id,group_id) VALUES ($1,$2,$3)", slotID, bannerID, groupID)
-	if err != nil {
-		return fmt.Errorf("unable to add banner display, %w", err)
+func (s *Storage) AddBannerDisplay(ctx context.Context, slotID string, groupID string) (bannerID int, err error) {
+	_, error := s.db.ExecContext(ctx, "INSERT INTO views (banner_id, slot_id,group_id) VALUES ($1,$2,$3)", slotID, bannerID, groupID)
+	if error != nil {
+		return 0, errors.Wrapf(err, "unable to add banner display, %w")
 	}
 
-	return mab.Ucb(), nil
+	return bannerID, nil
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func maxCLickableBanner(t *testing.T) {
+func TestMaxCLickableBanner(t *testing.T) {
 	clicks := make(map[BannerID]Mab)
 	clicks[1] = Mab{Display: 10, Click: 0}
 	clicks[2] = Mab{Display: 10, Click: 3}
@@ -19,4 +19,6 @@ func maxCLickableBanner(t *testing.T) {
 
 }
 
-// добавить тесты на пограничные и отрицательные значения, и др.виды тестов
+func TestConcurrency(t *testing.T) {
+	// добавить тесты на пограничные и отрицательные значения, конкурентную обработку запросов
+}

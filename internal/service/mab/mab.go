@@ -11,7 +11,7 @@ type Mab struct { // MultiArmedBandit
 	Click   int // amount of clicks on banners
 }
 
-// UCB represents the upper confidence bound algorithm
+// Ucb represents the upper confidence bound algorithm
 func Ucb(amount map[BannerID]Mab, displays int) BannerID {
 	rotations := make(map[float64]BannerID)
 	for k, v := range amount {

@@ -1,55 +1,25 @@
 package main
 
 import (
-	"context"
-	"flag"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+	"log"
+	"net"
 
-	"github.com/Feride3d/banner-rotation-service/internal/logger"
-	"github.com/Feride3d/banner-rotation-service/internal/storage"
+	"github.com/Feride3d/banner-rotation-service/internal/pb"
+	server "github.com/Feride3d/banner-rotation-service/internal/server/http"
+	"google.golang.org/grpc"
 )
 
-var configFile string
-
-func init() {
-	flag.StringVar(&configFile, "config", "/configs/config.yml", "Path to configuration file")
-}
-
 func main() {
-	config := NewConfig()
-	Logg := logger.New(config.Logger.Level)
+	s := grpc.NewServer()            // создать сервер
+	srv := &server.GRPCServer{}      // переменная со структурой, которая реализует интерфейс сервера
+	pb.RegisterRotatorServer(s, srv) // зарегистрировать сервер в качестве сервера для NewServer
 
-	storage := storage.New()
-	service := service.New(Logg, storage)
-	server := http.NewServer(service, config.Server.Host, config.Server.Port)
-
-	ctx, cancel := signal.NotifyContext(context.Background(),
-		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-	defer cancel()
-
-	go func() {
-		<-ctx.Done()
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
-
-		if err := server.Stop(ctx); err != nil {
-			Logg.Error("failed to stop http server")
-		}
-	}()
-
-	Logg.Info("start http server...")
-
-	if err := server.Start(ctx); err != nil {
-		Logg.Error("failed to start http server")
-		cancel()
-		os.Exit(1)
+	l, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		log.Fatal(err)
 	}
-}
 
-func NewConfig() Config {
-	return Config{}
+	if err := s.Serve(l); err != nil {
+		log.Fatal(err)
+	}
 }

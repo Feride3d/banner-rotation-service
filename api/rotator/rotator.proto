@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package rotator;
+option go_package = "./;pb";
+
+service Rotator {
+    // CreateBanner creates a new banner.
+    rpc CreateBanner(CreateBannerRequest) returns (CreateBannerResponse);
+
+    // CreateSlot creates a new slot.
+    rpc CreateSlot(CreateSlotRequest) returns (CreateSlotResponse);
+
+    // CreateGroup creates a new group.
+    rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse);
+
+    // AddBanner adds the banner to the slot. 
+    rpc AddBanner (AddBannerRequest) returns (AddBannerResponse);
+
+    // DeleteBanner removes the banner from the slot. 
+    rpc DeleteBanner(DeleteBannerRequest) returns (DeleteBannerResponse);
+
+    // AddClick adds a click on the banner. 
+    rpc AddClick(AddClickRequest) returns (AddClickResponse);
+
+    // AddBannerDisplay adds a banner to display. 
+    rpc AddBannerDisplay(AddBannerDisplayRequest) returns (AddBannerDisplayResponse);
+}
+
+message CreateBannerRequest {
+    string id = 1;
+    string description = 2;
+}
+
+message CreateBannerResponse {
+    string id = 1;
+}
+
+message CreateSlotRequest {
+    string id = 1;
+    string description = 2;
+}
+
+message CreateSlotResponse{
+    string id = 1;
+}
+
+message CreateGroupRequest {
+    string id = 1;
+    string description = 2;
+}
+
+message CreateGroupResponse {
+    string id = 1;
+}
+
+message AddBannerRequest {
+    int32 banner_id = 1;
+    int32 slot_id = 2;
+}
+
+message AddBannerResponse {
+    int32 id = 1;
+    int32 banner_id = 2;
+    int32 slot_id = 3;
+}
+
+message DeleteBannerRequest {
+    int32 banner_id = 1;
+    int32 slot_id = 2;
+}
+
+message DeleteBannerResponse {
+    int32 id = 1;
+}
+
+message AddClickRequest {
+    int32 banner_id = 1;
+    int32 slot_id = 2;
+    int32 group_id = 3;
+}
+
+message AddClickResponse {
+    int32 id = 1;
+}
+
+message AddBannerDisplayRequest {
+    int32 slot_id = 1;
+    int32 group_id = 2;
+}
+
+message AddBannerDisplayResponse {
+    int32 id = 1;
+}

@@ -17,21 +17,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-  game_server_createdb:
-    volumes:
-      - ./scripts:/app/scripts:ro
-
-  user_stats_createdb:
-    volumes:
-      - ./scripts:/app/scripts:ro
-
-  game_server:
+  bamnner-rotator_server:
     ports:
       - "9001:9090"
-
-  user_stats:
-    ports:
-      - "9002:9090"
 
 volumes:
   pgdata:

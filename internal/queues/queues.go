@@ -26,7 +26,7 @@ func NewPublisher(name string, conn RMQConnection) *Publisher {
 	}
 }
 
-// Publish publishes messages to the exchange.
+// Publish publishes messages (events) to the exchange.
 func (p *Publisher) Publish(ctx context.Context, message models.Events) error {
 	if ctx.Err() == context.Canceled {
 		return errors.New("messages publication canceled")
@@ -34,7 +34,7 @@ func (p *Publisher) Publish(ctx context.Context, message models.Events) error {
 
 	ch, err := p.conn.Channel()
 	if err != nil {
-		return fmt.Errorf("open channel: %w", err)
+		return fmt.Errorf("failed to open channel: %w", err)
 	}
 	defer ch.Close()
 
@@ -44,13 +44,13 @@ func (p *Publisher) Publish(ctx context.Context, message models.Events) error {
 		false,
 		nil)
 	if err != nil {
-		return fmt.Errorf("create queue: %w", err)
+		return fmt.Errorf("failed to create queue: %w", err)
 	}
 
 	if ch != nil {
 		bytes, err := json.Marshal(message)
 		if err != nil {
-			return fmt.Errorf("marshall message: %w", err)
+			return fmt.Errorf("failed to marshall message: %w", err)
 		}
 
 		err = ch.Publish(
@@ -63,10 +63,10 @@ func (p *Publisher) Publish(ctx context.Context, message models.Events) error {
 				Body:        bytes,
 			})
 		if err != nil {
-			return fmt.Errorf("publish message: %w", err)
+			return fmt.Errorf("failed to publish message: %w", err)
 		}
 
-		return fmt.Errorf("publish message: %w", err)
+		return fmt.Errorf("failed to publish message: %w", err)
 	}
 	return nil
 }

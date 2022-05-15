@@ -1,15 +1,23 @@
 package main
 
 import (
-	"log"
-	"net"
+	"fmt"
+	"os"
 
-	"github.com/Feride3d/banner-rotation-service/internal/pb"
-	server "github.com/Feride3d/banner-rotation-service/internal/server/http"
-	"google.golang.org/grpc"
+	server "github.com/Feride3d/banner-rotation-service/internal/server"
 )
 
 func main() {
+	if err := server.Run(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+/*
+	}
+}
+
 	s := grpc.NewServer()            // создать сервер
 	srv := &server.GRPCServer{}      // переменная со структурой, которая реализует интерфейс сервера
 	pb.RegisterRotatorServer(s, srv) // зарегистрировать сервер в качестве сервера для NewServer
@@ -19,7 +27,4 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := s.Serve(l); err != nil {
-		log.Fatal(err)
-	}
-}
+	if err := s.Serve(l); err != nil { */

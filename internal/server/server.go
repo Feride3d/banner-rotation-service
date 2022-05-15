@@ -53,14 +53,43 @@ func (s *GRPCServer) Start() error {
 	return serv.Serve(l)
 }
 
+/* рассмотреть такой вариант для старта командой Run из main как в шахматах
+func Run() error {
+	l, err := net.Listen("tcp", "0.0.0.0:9090")
+	if err != nil {
+		return err
+	}
+
+	serv := grpc.NewServer()
+	storage, err := storage.NewStorage("postgres://postgres:postgres@postgres:5432/rotationservice?sslmode=disable")
+	if err != nil {
+		return err
+	}
+
+	amqpConn, err := connectAmqp()
+	if err != nil {
+		return errors.New("failed to connect to rabbitmq")
+	}
+
+	pb.RegisterRotatorServer(serv, &GRPCServer{
+		pb.UnimplementedRotatorServer,
+		storage,
+		amqpConn,
+		bannerRotationService,
+		publisher,
+		logger,
+	})
+	return serv.Serve(l)
+} */
+
 // AddBanner adds the banner to the slot.
 func (s *GRPCServer) AddBanner(ctx context.Context, req *pb.AddBannerRequest) (*pb.AddBannerResponse, error) {
 	if ctx.Err() != nil {
-		return nil, errors.New("Request is cancelled.")
+		return nil, errors.New("request is cancelled")
 	}
 
 	if req.BannerId == 0 || req.SlotId == 0 {
-		return nil, errors.New("Process request: no banners or slots to add.")
+		return nil, errors.New("process request: no banners or slots to add")
 	}
 
 	rotator := models.Rotation{
@@ -70,7 +99,7 @@ func (s *GRPCServer) AddBanner(ctx context.Context, req *pb.AddBannerRequest) (*
 
 	newRotator, err := s.bannerRotationService.AddBanner(ctx, rotator)
 	if err != nil {
-		return nil, errors.New("AddBanner request is failed.")
+		return nil, errors.New("addBanner request is failed")
 	}
 
 	return &pb.AddBannerResponse{
@@ -83,18 +112,18 @@ func (s *GRPCServer) AddBanner(ctx context.Context, req *pb.AddBannerRequest) (*
 // DeleteBanner deletes the banner from the slot.
 func (s *GRPCServer) DeleteBanner(ctx context.Context, req *pb.DeleteBannerRequest) (*pb.DeleteBannerResponse, error) {
 	if ctx.Err() != nil {
-		return nil, errors.New("Request is cancelled.")
+		return nil, errors.New("request is cancelled")
 	}
 
 	if req.BannerId == 0 || req.SlotId == 0 {
-		return nil, errors.New("Process request: no banners to delete.")
+		return nil, errors.New("process request: no banners to delete")
 	}
 
 	bannerID := int(req.GetBannerId())
 
 	err := s.bannerRotationService.DeleteBanner(ctx, bannerID)
 	if err != nil {
-		return nil, errors.New("AddBanner request is failed.")
+		return nil, errors.New("addBanner request is failed")
 	}
 
 	return &pb.DeleteBannerResponse{
@@ -105,11 +134,11 @@ func (s *GRPCServer) DeleteBanner(ctx context.Context, req *pb.DeleteBannerReque
 // AddClick adds a click on the banner.
 func (s *GRPCServer) AddClick(ctx context.Context, req *pb.AddClickRequest) (*pb.AddClickResponse, error) {
 	if ctx.Err() != nil {
-		return nil, errors.New("Request is cancelled.")
+		return nil, errors.New("request is cancelled")
 	}
 
 	if req.BannerId == 0 || req.SlotId == 0 || req.GroupId == 0 {
-		return nil, errors.New("No banners or slots or groups to click.")
+		return nil, errors.New("no banners or slots or groups to click")
 	}
 
 	bannerID := int(req.GetBannerId())
@@ -117,7 +146,7 @@ func (s *GRPCServer) AddClick(ctx context.Context, req *pb.AddClickRequest) (*pb
 
 	rotation, err := s.bannerRotationService.RotationStorage.GetBanner(ctx, bannerID)
 	if err != nil {
-		return nil, errors.New("AddClick request is cancelled.")
+		return nil, errors.New("addClick request is cancelled")
 	}
 
 	events, err := s.bannerRotationService.AddClick(ctx, *rotation, groupID)
@@ -126,7 +155,7 @@ func (s *GRPCServer) AddClick(ctx context.Context, req *pb.AddClickRequest) (*pb
 	}
 	err = s.publisher.Publish(ctx, *events)
 	if err != nil {
-		s.logger.Error("Process request: publish message to queue.")
+		s.logger.Error("process request: publish message to queue.")
 	}
 
 	return &pb.AddClickResponse{
@@ -137,11 +166,11 @@ func (s *GRPCServer) AddClick(ctx context.Context, req *pb.AddClickRequest) (*pb
 // AddBannerDisplay adds a banner to display.
 func (s *GRPCServer) AddBannerDisplay(ctx context.Context, req *pb.AddBannerDisplayRequest) (*pb.AddBannerDisplayResponse, error) {
 	if ctx.Err() != nil {
-		return nil, errors.New("Request is cancelled.")
+		return nil, errors.New("request is cancelled")
 	}
 
 	if req.SlotId == 0 || req.GroupId == 0 {
-		return nil, errors.New("Process request: no slot or group.")
+		return nil, errors.New("process request: no slot or group")
 	}
 
 	slotID := int(req.GetSlotId())
@@ -154,7 +183,7 @@ func (s *GRPCServer) AddBannerDisplay(ctx context.Context, req *pb.AddBannerDisp
 
 	err = s.publisher.Publish(ctx, *events)
 	if err != nil {
-		s.logger.Error("Process request: send message to queue error.")
+		s.logger.Error("Process request: send message to queue error")
 	}
 	return &pb.AddBannerDisplayResponse{
 		Id: int32(bannerID),

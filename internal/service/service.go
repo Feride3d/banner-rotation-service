@@ -2,53 +2,61 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/Feride3d/banner-rotation-service/internal/storage"
 	"github.com/Feride3d/banner-rotation-service/internal/storage/models"
+	"github.com/sirupsen/logrus"
 )
 
-type Service struct { //
-
+type Service struct {
+	logger  Logger
+	storage storage.RotationStorage
+	mab     Mab
+	queues  Queues
 }
 
-// NewServer accesses storage.
-func NewService(bd *storage.Storage) *Service {
-	return &Service{}
+type Logger interface {
+	Entry() *logrus.Entry
+	Info(msg string)
+	Warn(msg string)
+	Error(msg string)
+	Debug(msg string)
+	Trace(msg string)
 }
 
-// BannerRotationService structure.
-type BannerRotationService struct {
-	RotationStorage models.RotationStorage
-	EventsStorage   models.EventsStorage
-	EventsService   EventsService
+type Mab interface {
+	Ucb(banners []string, clicks map[string]int, displays map[string]int) (string, error)
 }
 
-// EventServ represents storage of events.
-type EventServ struct {
-	EventsStorage models.EventsStorage
+type Queues interface {
+	Publish(ctx context.Context, event models.Events) error
 }
 
-// EventsService represents interface with method which saves events.
-type EventsService interface {
-	SaveEvents(ctx context.Context, rotation models.Rotation, groupID int, eventsType int) (*models.Events, error)
+// Logger
+func (s *Service) LoggerBegin() Logger {
+	return s.logger
+}
+
+// NewService
+func New(logger Logger, storage storage.RotationStorage, mab Mab, queues Queues) *Service {
+	return &Service{logger: logger, storage: storage, mab: mab, queues: queues}
 }
 
 // AddBanner adds a banner to the slot.
-func (b *BannerRotationService) AddBanner(ctx context.Context, rotation models.Rotation) (*models.Rotation, error) {
-	newRotation, err := b.RotationStorage.AddBanner(ctx, rotation)
+func (s *Service) AddBanner(ctx context.Context, bannerID string, slotID string) error {
+	err := s.storage.AddBanner(ctx, bannerID, slotID)
 	if err != nil {
-		return nil, fmt.Errorf("add banner to slot: %w", err)
+		return fmt.Errorf("add banner to slot: %w", err)
 	}
 
-	return newRotation, nil
+	return nil
 }
 
 // DeleteBanner deletes the banner from the slot.
-func (b *BannerRotationService) DeleteBanner(ctx context.Context, bannerID int) error {
-	err := b.RotationStorage.DeleteBanner(ctx, bannerID)
+func (s *Service) DeleteBanner(ctx context.Context, bannerID string, slotID string) error {
+	err := s.storage.DeleteBanner(ctx, bannerID, slotID)
 	if err != nil {
 		return fmt.Errorf("delete banner from slot: %w", err)
 	}
@@ -57,141 +65,132 @@ func (b *BannerRotationService) DeleteBanner(ctx context.Context, bannerID int) 
 }
 
 // CreateBanner creates a new banner.
-func (b *BannerRotationService) CreateBanner(ctx context.Context, bannerID int, description string) error {
-	err := b.RotationStorage.CreateBanner(ctx, bannerID, description)
+func (s *Service) CreateBanner(ctx context.Context, bannerID string, description string) (string, error) {
+	_, err := s.storage.CreateBanner(ctx, bannerID, description)
 	if err != nil {
-		return fmt.Errorf("create banner: %w", err)
+		return "", fmt.Errorf("create banner: %w", err)
 	}
 
-	return nil
+	return "", nil
 }
 
 // CreateSlot creates a new slot.
-func (b *BannerRotationService) CreateSlot(ctx context.Context, slotID int, description string) error {
-	err := b.RotationStorage.CreateSlot(ctx, slotID, description)
+func (s *Service) CreateSlot(ctx context.Context, slotID string, description string) (string, error) {
+	_, err := s.storage.CreateSlot(ctx, slotID, description)
 	if err != nil {
-		return fmt.Errorf("create slot: %w", err)
+		return "", fmt.Errorf("create slot: %w", err)
 	}
 
-	return nil
+	return "", nil
 }
 
 // CreateGroup creates a new group.
-func (b *BannerRotationService) CreateGroup(ctx context.Context, groupID int, description string) error {
-	err := b.RotationStorage.CreateGroup(ctx, groupID, description)
+func (s *Service) CreateGroup(ctx context.Context, groupID string, description string) (string, error) {
+	_, err := s.storage.CreateGroup(ctx, groupID, description)
 	if err != nil {
-		return fmt.Errorf("create group: %w", err)
+		return "", fmt.Errorf("create group: %w", err)
+	}
+
+	return "", nil
+}
+
+// AddClick adds a click on the banner in the group.
+func (s *Service) AddClick(ctx context.Context, bannerID string, slotID string, groupID string) error {
+	time := time.Now()
+	err := s.storage.AddClick(ctx, bannerID, slotID, groupID, time)
+	if err != nil {
+		return fmt.Errorf("add a click on banner: %w", err)
+	}
+
+	err = s.queues.Publish(ctx, models.Events{Type: "click", BannerID: bannerID, SlotID: slotID, GroupID: groupID, Time: time})
+	if err != nil {
+		return fmt.Errorf("failed to create click event, %w", err)
+	}
+	return nil
+}
+
+// Adds a banner to display.
+func (s *Service) AddDisplay(ctx context.Context, bannerID, slotID string, groupID string) error {
+	time := time.Now()
+	err := s.storage.AddBannerDisplay(ctx, bannerID, slotID, groupID, time)
+	if err != nil {
+		return fmt.Errorf("add banner's display: %w", err)
+	}
+
+	err = s.queues.Publish(ctx, models.Events{Type: "display", BannerID: bannerID, SlotID: slotID, GroupID: groupID, Time: time})
+	if err != nil {
+		return fmt.Errorf("publish banner display: %w", err)
 	}
 
 	return nil
 }
 
-// AddClick adds a click on the banner in the group.
-func (b *BannerRotationService) AddClick(ctx context.Context, rotation models.Rotation, groupID int,
-) (*models.Events, error) {
-	events, err := b.EventsService.SaveEvents(ctx, rotation, groupID, models.EventsClickType)
+// AddBannerDisplay chooses a banner to display.
+func (s *Service) AddBannerDisplay(ctx context.Context, slotID string, groupID string) (string, error) {
+	bannerNotDisplay, err := s.storage.GetBannerNotDisplay(ctx, slotID)
 	if err != nil {
-		return nil, fmt.Errorf("add a click on banner: %w", err)
+		return "", fmt.Errorf("choose banner for display: %w", err)
 	}
 
-	return events, nil
+	if len(bannerNotDisplay) > 0 {
+		bannerID := bannerNotDisplay[0].BannerID
+
+		err := s.AddDisplay(ctx, bannerID, slotID, groupID)
+		if err != nil {
+			return "", fmt.Errorf("choose banner for display: %w", err)
+		}
+		return bannerID, nil
+	}
+
+	bannerInSlot, err := s.storage.GetBannerInSlot(ctx, slotID)
+	if err != nil {
+		return "", err
+	}
+
+	bannerClick, err := s.storage.GetBannerClick(ctx, slotID)
+	if err != nil {
+		return "", err
+	}
+
+	bannerDisplay, err := s.storage.GetBannerDisplay(ctx, slotID)
+	if err != nil {
+		return "", err
+	}
+
+	banner, bannerClickInMap, bannerDisplayInMap := s.CountInMap(bannerInSlot, bannerClick, bannerDisplay)
+	bannerID, err := s.mab.Ucb(banner, bannerClickInMap, bannerDisplayInMap)
+	if err != nil {
+		return "", err
+	}
+
+	err = s.AddDisplay(ctx, bannerID, slotID, groupID)
+	if err != nil {
+		return "", err
+	}
+
+	return bannerID, nil
 }
 
-// Adds a banner to display.
-func (b *BannerRotationService) AddBannerDisplay(ctx context.Context, slotID int, groupID int,
-) (int, *models.Events, error) {
-	rotations, err := b.RotationStorage.GetAllBannersInSlot(ctx, slotID)
-	if err != nil {
-		return 0, nil, fmt.Errorf("get banners by slotID: %w", err)
+func (s *Service) CountInMap(
+	bannerInSlot []models.Rotation,
+	bannerClick []models.NewClick,
+	bannerDisplay []models.BannerDisplay) (
+	banner []string,
+	bannerClickInMap map[string]int,
+	bannerDisplayInMap map[string]int,
+) {
+	bannerClickInMap = make(map[string]int)
+	bannerDisplayInMap = make(map[string]int)
+	for _, banners := range bannerInSlot {
+		banner = append(banner, banners.BannerID)
+	}
+	for _, click := range bannerClick {
+		bannerClickInMap[click.BannerID]++
+	}
+	for _, display := range bannerDisplay {
+		bannerDisplayInMap[display.BannerID]++
 	}
 
-	eventsList, err := b.EventsStorage.FindAll(ctx, slotID, groupID)
-	if err != nil {
-		return 0, nil, fmt.Errorf("find events by slotID and groupID: %w", err)
-	}
+	return banner, bannerClickInMap, bannerDisplayInMap
 
-	rotation, err := b.chooseBanner(rotations, eventsList)
-	if err != nil {
-		return 0, nil, fmt.Errorf("define banner: %w", err)
-	}
-
-	events, err := b.EventsService.SaveEvents(ctx, *rotation, groupID, models.EventsDisplayType)
-	if err != nil {
-		return 0, nil, fmt.Errorf("save display event: %w", err)
-	}
-
-	return rotation.BannerID, events, nil
-}
-
-// ChooseBanner chooses a banner to display.
-func (b *BannerRotationService) chooseBanner(rotations []*models.Rotation, eventsList []*models.Events,
-) (*models.Rotation, error) {
-	if len(rotations) <= 0 {
-		return nil, errors.New("empty list")
-	}
-
-	banners := make(map[int]models.Banner, len(rotations))
-	for _, rotation := range rotations {
-		banners[rotation.BannerID] = models.Banner{ID: rotation.BannerID}
-	}
-
-	for _, events := range eventsList {
-		banner, check := banners[events.BannerID]
-
-		if !check {
-			continue
-		}
-
-		if events.DisplayType() {
-			banner.Displays++
-		}
-
-		if events.ClickType() {
-			banner.Clicks++
-		}
-
-		banner.GroupID = events.GroupID
-
-		banners[banner.ID] = banner
-	}
-
-	display := make([]int, 0, len(banners))
-	click := make([]int, 0, len(banners))
-	mab := make(map[int]int, len(banners))
-	i := 0
-
-	for bannerID, banner := range banners {
-		mab[i] = bannerID
-		display = append(display, banner.Displays)
-		click = append(click, banner.Clicks)
-		i++
-	}
-	rotation := new(models.Rotation)
-
-	for _, r := range rotations {
-		{
-			rotation = r
-		}
-	}
-
-	return rotation, nil
-}
-
-// SaveEvents save events for statistical information.
-func (e *EventServ) SaveEvents(ctx context.Context, rotation models.Rotation, groupID int, eventsType int,
-) (*models.Events, error) {
-	events := models.Events{
-		Type:     eventsType,
-		BannerID: rotation.BannerID,
-		SlotID:   rotation.SlotID,
-		GroupID:  groupID,
-		Date:     time.Now().UTC(),
-	}
-
-	newEvents, err := e.EventsStorage.Add(ctx, events)
-	if err != nil {
-		return nil, fmt.Errorf("save events: %w", err)
-	}
-
-	return newEvents, nil
 }

@@ -1,0 +1,61 @@
+version: "3"
+
+services:
+  banner-rotation-service:
+    container_name: rotator
+    restart: always
+    build: 
+      context: . 
+      dockerfile: ./Dockerfile
+      args:
+        - CONFIG_FILE_NAME=config
+    depends_on:
+      - postgres
+      - rabbit
+    environment:
+      - WAIT_HOSTS=postgres:5432, rabbit:5672
+    ports:
+      - '4500:4500'
+      - '7777:7777'
+    expose:
+      - 4500
+      - 7777
+    volumes:
+      - ./logs/containers/:/logs/
+    networks:
+      - postgres
+      - rabbit
+
+  postgres:
+    image: postgres
+    hostname: postgres
+    container_name: postgres-rotator
+    restart: always
+    ports:
+      - '5432:5432'
+    expose: 
+      - 5432
+    environment:
+      - PG_USER=postgres
+      - PG_PASSWORD=postgres
+      - PG_DB=banner-rotation-service
+    networks:
+      - postgres
+  
+  rabbit:
+    image: rabbitmq:3
+    hostname: rabbit
+    container_name: rabbit-rotator
+    restart: always
+    ports: 
+      - '5672-5672'
+    expose:
+      - 5672
+    networks:
+      - rabbit
+
+networks:
+  postgres:
+    driver: bridge
+  rabbit:
+    driver: bridge

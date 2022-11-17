@@ -27,7 +27,7 @@ func NewPublisher(name string, conn RMQConnection) *Publisher {
 }
 
 // Publish publishes messages (events) to the exchange.
-func (p *Publisher) Publish(ctx context.Context, message models.Events) error {
+func (p *Publisher) Publish(ctx context.Context, event models.Events) error {
 	if ctx.Err() == context.Canceled {
 		return errors.New("messages publication canceled")
 	}
@@ -48,7 +48,7 @@ func (p *Publisher) Publish(ctx context.Context, message models.Events) error {
 	}
 
 	if ch != nil {
-		bytes, err := json.Marshal(message)
+		bytes, err := json.Marshal(event)
 		if err != nil {
 			return fmt.Errorf("failed to marshall message: %w", err)
 		}

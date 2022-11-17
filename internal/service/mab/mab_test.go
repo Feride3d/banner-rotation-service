@@ -6,27 +6,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMaxCLickableBanner(t *testing.T) {
-	clicks := make(map[BannerID]Mab)
-	clicks[1] = Mab{Display: 10, Click: 0}
-	clicks[2] = Mab{Display: 10, Click: 3}
-	clicks[3] = Mab{Display: 10, Click: 5}
-	clicks[4] = Mab{Display: 10, Click: 10}
-	t.Run("banner 4", func(t *testing.T) {
-		rotation := Ucb(clicks, 10)
-		require.Equal(t, 4, int(rotation))
+func TestMaxCLickedBanners(t *testing.T) {
+	mab := NewMab()
+	t.Run("test banner with max click", func(t *testing.T) {
+		amounts := map[string]float64{"banner1": 0.5, "banner2": 0.15, "banner3": 0.2}
+		maxClickedBanners := mab.SelectMaxClickedBanners(amounts, 0.5)
+		require.Len(t, maxClickedBanners, 1)
+		require.Contains(t, maxClickedBanners, "banner1")
 	})
-
 }
 
-func TestZeroValue(t *testing.T) {
-	clicks := make(map[BannerID]Mab)
-	clicks[1] = Mab{Display: 0, Click: 0}
-	clicks[2] = Mab{Display: 0, Click: 0}
-	clicks[3] = Mab{Display: 0, Click: 0}
-	clicks[4] = Mab{Display: 0, Click: 0}
-	t.Run("zero display and value", func(t *testing.T) {
-		rotation := Ucb(clicks, 0)
-		require.Equal(t, 0, int(rotation))
+func TestMaxClick(t *testing.T) {
+	mab := NewMab()
+	t.Run("test getting max click amount", func(t *testing.T) {
+		amounts := map[string]float64{"banner1": 0.5, "banner2": 0.15, "banner3": 0.2}
+		maxClick := mab.MaxClick(amounts)
+		require.Equal(t, 0.5, maxClick)
+	})
+}
+
+func TestZeroDisplays(t *testing.T) {
+	mab := NewMab()
+	t.Run("test zero displays", func(t *testing.T) {
+		banner, err := mab.Ucb([]string{"banner1", "banner2", "banner3"}, map[string]int{}, map[string]int{})
+		require.ErrorIs(t, err, ErrZeroDisplays)
+		require.Empty(t, banner)
 	})
 }

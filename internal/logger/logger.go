@@ -1,30 +1,63 @@
 package logger
 
 import (
+	"context"
+	"fmt"
 	"io"
+	"log"
 	"os"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
-func New(env string, path string, level string) (*log.Logger, error) {
-	logger := log.New()
-	lvl, err := log.ParseLevel(level)
-	if err != nil {
-		return nil, err
-	}
-	logger.Level = lvl
-	logger.Formatter = &log.JSONFormatter{}
+type Logger struct {
+	logger *logrus.Logger
+}
 
-	logFile, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+func New(ctx context.Context, level string, file string) *Logger {
+	f, err := os.OpenFile(file, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
 	if err != nil {
-		return nil, err
+		log.Println("failed to open logFile")
+		return nil
 	}
-	if env == "production" {
-		logger.Out = logFile
-	} else {
-		logger.Out = io.MultiWriter(logFile, os.Stdout)
+	log := logrus.New()
+	lv, err := logrus.ParseLevel(level)
+	if err != nil {
+		log.Println("failed to parse log level")
 	}
+	log.SetLevel(lv)
+	log.SetOutput(io.MultiWriter(f, os.Stdout))
 
-	return logger, nil
+	go func() {
+		<-ctx.Done()
+		if err := f.Close(); err != nil {
+			log.Println("failed to close logFile")
+			return
+		}
+		fmt.Println("LogFile was closed")
+	}()
+
+	return &Logger{logger: log}
+}
+
+func (l Logger) Entry() *logrus.Entry
+
+func (l Logger) Info(msg string) {
+	l.logger.Info(msg)
+}
+
+func (l Logger) Error(msg string) {
+	l.logger.Error(msg)
+}
+
+func (l Logger) Warn(msg string) {
+	l.logger.Warn(msg)
+}
+
+func (l Logger) Debug(msg string) {
+	l.logger.Debug(msg)
+}
+
+func (l Logger) Trace(msg string) {
+	l.logger.Trace(msg)
 }

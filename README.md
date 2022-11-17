@@ -1,130 +1,187 @@
-# Banner rotation service
+<img src="./readme_assets/header.png" width="100%">
+<p align="center">
+<img src="https://media0.giphy.com/media/kfoSwDAZXewCcITj7B/giphy.gif " width="20%"></p>
 
-## Проектная работа на курсе "Golang Developer. Professional" от Otus https://otus.ru/lessons/golang-professional/. 
+<h2 align="center">
 
-## Общее описание сервиса "Ротация баннеров" 
-Сервис "Ротация баннеров" предназначен для выбора наиболее эффективных (кликабельных) баннеров,
-в условиях меняющихся предпочтений пользователей и набора баннеров.
+ [![Go Report Card](https://goreportcard.com/badge/github.com/Feride3d/banner-rotation-service)](https://goreportcard.com/report/github.com/Feride3d/banner-rotation-service) [![Test Coverage](https://api.codeclimate.com/v1/badges/1899cd6b3692b2873a79/test_coverage)](https://codeclimate.com/github/Feride3d/banners-rotation-service/test_coverage)
 
-Задача сервиса - осуществлять "ротацию" баннеров, показывая те, которые наиболее вероятно приведут 
-к переходу в той или иной социально-демографической группе. Для этого предполагается использовать алгоритм "Многорукий бандит":
-https://habr.com/ru/company/surfingbird/blog/168611/
+## About The Project
+________
+Service implemented on Go.
+The Banner Rotation Service helps you to select the most clickable banners, in terms of changing socio-demographic groups of users and sets of banners. In other words, it is designed to stand out on a webpage and catch the consumer's eye.
+The service rotates banners and displays those that are most likely to bring the click from one or another socio-demographic group of users. The service uses the ["Multi-armed bandit" algorithm](https://en.wikipedia.org/wiki/Multi-armed_bandit).
 
-<img src="./examples/banners-rotation/conceptual_model.png" width="800">
+What are multi-armed bandits?
+MAB is a type of A/B testing that uses machine learning to learn from data gathered during the test to dynamically increase the visitor allocation in favor of better-performing variations. More information about MAB you can find [here (in Russian)](https://habr.com/ru/company/surfingbird/blog/168611/) and [here (in English)](https://vwo.com/blog/multi-armed-bandit-algorithm/#:~:text=MAB%20is%20a%20type%20of,less%20traffic%20allocation%20over%20time.). 
 
-## Архитектура
-Сервис состоит из API и базы данных в которой хранится информация о баннерах.
-Сервис предоставляет GRPC.
+<p align="center">
+<img src="./readme_assets/BanRotMod.png" width="80%">
 
-## Используемые технологии и протоколы
-    • AMQP
-    • Docker
-    • gRPC (Protocol Buffers)
-    • HTTP
-    • PostgreSQL
-    • RabbitMQ
+<p align="center">
+<img src="https://media0.giphy.com/media/Pf4JqYKpogLILXpBV1/giphy.gif" width="30%"></p>
 
-## Команды для запуска программы
 
-### Развернуть базу данных в postgres в docker контейнере
-``` 
-sudo docker run --name=rotation.db -e POSTGRES_PASSWORD='qwerty' -p 5432:5432 -d postgres
-CREATE DATABASE rotationservice
-```
 
-### Развернуть очереди сообщений  rabbitmq в docker контенере 
-```
-sudo docker run -d --name rb -p 15672:15672 -p 5672:5672 rabbitmq:3-management
-```
+## Architecture
+______
+The service consists of an API, a database and a queue. The service provides GRPC.
 
-(графический интерфейс доступен по адресу:  http://localhost:15672/  
-логин:пароль –  guest:guest)
+## Used Technologies and protocols
+__________
+        • Docker
+        • gRPC Gateway (protocol buffers)
+        • HTTP
+        • PostgreSQL
+        • RabbitMQ
 
-### Осуществить миграцию базы данных
-```
-cd migrations
-goose postgres "postgres://postgres:123@localhost:5432/rotationservice?sslmode=disable" up
-```
-
-### Запустить команды в Makefile для старта сервиса
+## Commands (if you want to run the program)
+__________
+### Run the service (start docker containers):
 ```
 make run 
 ```
 
-### Остановить сервис 
+### Down the service (stop docker containers):
 ```
 make down 
 ```
 
-## Примеры запросов: 
+### Build the service:
 ```
+make up
 ```
 
+### Lint the service with golangci-lint:
+```
+make lint 
+```
 
-## Описание сущностей
-### Слот
-Слот - место на сайте, на котором мы показываем баннер.
+### Test the service (unit tests):
+```
+make test
+```
+
+### Generate proto files:
+```
+make proto
+```
+
+### Generate gRPC Gateway:
+```
+make generate-gateway
+```
+
+### Run migration:
+```
+make migration-up
+```
+
+### Down migration:
+```
+make migration-down
+```
+
+## Examples of requests
+___________
+Now you can try use API for making requests (for example): 
+
+### CreateBanner
+* Method: POST
+* Request: api/banners/create
+
+### CreateSlot
+* Method: POST
+* Request: api/slots/create
+
+### CreateGroup
+* Method: POST
+* Request: api/groups/create
+
+### AddBanner
+* Method: POST
+* Request: api/banners/add
+
+### DeleteBanner
+* Method: POST
+* Request: api/banners/delete
+
+### AddClick
+* Method: POST
+* Request: api/banners/click
+
+### AddBannerDisplay
+* Method: POST
+* Request: api/banners/get
+
+
+## Description of items
+_________
+### Banner
+Banner - an advertising/informational element that is displayed in the Slot.
 * ID
-* Описание
+* Description
 
-### Баннер
-Баннер - рекламный/информационный элемент, который показывается в слоте.
+One banner can participate in the rotation in several slots.
+Banner statistics are stored within one slot.
+
+### Slot
+Slot - the place on the site, where we display banners.
 * ID
-* Описание
+* Description
 
-Один баннер может участвовать в ротации в нескольких слотах.
-
-Статистика по баннеру ведется в рамках одного слота.
-
-### Соц-дем. группа пользователей
-Соц-дем. группа - это группа пользователей сайта со схожими интересами,
-например "девушки 20-25" или "дедушки 80+".
+### Group
+Group is a social dem.  group of site users with similar interests,
+for example "girls 20-25" or "grandfathers 80+".
 * ID
-* Описание
+* Description
 
-## Описание методов (запросов на сервер)
+## Description of methods (requests to the server)
+_______
 
-### Добавить баннер
-Добавляет новый баннер в ротацию в данном слоте.
-* ID баннера
-* ID слота
+### AddBanner
+Adds a new banner to the rotation in this slot.
+* Banner ID
+* Slot ID
 
-### Удалить баннер
-Удаляет баннер из ротации в данном слоте.
-* ID слота
-* ID баннера
+### DeleteBanner
+Deletes a banner from the rotation in this slot.
+* Slot ID
+* Banner ID
 
-### Засчитать переход
-Увеличивает счетчик переходов на 1 для указанного баннера в данном слоте в указанной группе.
-* ID слота
-* ID баннера
-* ID соц-дем. группы
+### NewClick
+Increases the click count by 1 for the specified banner in this slot in the specified group.
+* Slot ID
+* Banner ID
+* Group ID
 
-### Выбрать баннер для показа
-Основной метод. Возвращает баннер, который следует показать в данный момент в указанном
-слоте для указанной соц-дем. группы. Увеличивает число показов баннера в группе.
+### AddBannerDisplay
+Selects a banner to display. Returns the banner to be shown at the moment in the specified slot for the specified social dem. groups. Increases the number of banner displays in the group.
 
-Принимает:
-* ID слота
-* ID соц-дем. группы
+Takes:
+* Slot ID
+* Group ID
 
-Возвращает:
-* ID баннера
-
-## Выгрузка статистики
-Микросервис отправляет события кликов и показов в очередь (rabbitMQ)
-для дальнейшей обработки в аналитических системах.
-
-Формат событий следующий:
-* Тип: клик или показ
-* ID слота
-* ID баннера
-* ID соц.дем группы
-* Дата и время
+Returns:
+* Banner ID
   
-## Развертывание
-Развертывание микросервиса осуществляется командой `make run` (внутри `docker compose up`)
-в директории с проектом.
+## Statistics
+________
+Service sends click and impression events to a rabbitMQ (queue of messages (events)) for further processing in analytical systems.
 
+The event format is as follows:
+* Type: click or display
+* Slot ID
+* Banner ID
+* Group ID
+* Date and time
+  
+## Deployment
+________
+The microservice is deployed using the `make run` command (inside `docker compose up`) in the project directory.
 
-Техническое задание и его авторы указаны по ссылке: https://github.com/OtusGolang/final_project/blob/master/README.md
+## License
+_________
+All source code is licensed under the [MIT License](https://choosealicense.com/licenses/mit/).
+
+Technical specification and its authors уou can find [here](https://github.com/OtusGolang/final_project/blob/master/README.md).

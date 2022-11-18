@@ -1,0 +1,17 @@
+logger:
+  level: info
+  file: ./logs/rotation.log
+db:
+  user: "postgres" 
+  password: "postgres" 
+  host: "localhost"
+  port: 5432 
+  dbname: "banner-rotation-service"
+  sslmode: disable 
+server:
+  host: localhost
+  port: 4500
+  grpcport: 7777
+rabbitmq:
+  uri: "amqp://guest:guest@rabbit:5672/"
+  queuename: "banner-stats"

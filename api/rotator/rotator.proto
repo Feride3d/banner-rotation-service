@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package rotator;
+
+import "third_party/google/api/annotations.proto";
+
+option go_package = "./;pb";
+
+service Rotator {
+    // CreateBanner creates a new banner.
+    rpc CreateBanner(CreateBannerRequest) returns (CreateBannerResponse) {
+        option (google.api.http) = {
+            post: "/api/banners/create"
+            body: "*"
+        };
+    }
+
+    // CreateSlot creates a new slot.
+    rpc CreateSlot(CreateSlotRequest) returns (CreateSlotResponse) {
+        option (google.api.http) = {
+            post: "/api/slots/create"
+            body: "*"
+        };
+    }
+
+    // CreateGroup creates a new group.
+    rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse) {
+        option (google.api.http) = {
+            post: "/api/groups/create"
+            body: "*"
+        };
+    }
+
+    // AddBanner adds the banner to the slot. 
+    rpc AddBanner (AddBannerRequest) returns (AddBannerResponse) {
+        option (google.api.http) = {
+            post: "/api/banners/add"
+            body: "*"
+        };
+    }
+
+    // DeleteBanner deletes the banner from the slot. 
+    rpc DeleteBanner(DeleteBannerRequest) returns (DeleteBannerResponse) {
+        option (google.api.http) = {
+            post: "/api/banners/delete"
+            body: "*"
+        };
+    }
+
+    // AddClick adds a click on the banner. 
+    rpc AddClick(AddClickRequest) returns (AddClickResponse) {
+        option (google.api.http) = {
+            post: "/api/banners/click"
+            body: "*"
+        };
+    }
+
+    // AddBannerDisplay adds a banner to display. 
+    rpc AddBannerDisplay(AddBannerDisplayRequest) returns (AddBannerDisplayResponse) {
+        option (google.api.http) = {
+            post: "/api/banners/get"
+            body: "*"
+        };
+    }
+}
+
+message CreateBannerRequest {
+    string id = 1;
+    string description = 2;
+}
+
+message CreateBannerResponse {
+    string id = 1;
+}
+
+message CreateSlotRequest {
+    string id = 1;
+    string description = 2;
+}
+
+message CreateSlotResponse{
+    string id = 1;
+}
+
+message CreateGroupRequest {
+    string id = 1;
+    string description = 2;
+}
+
+message CreateGroupResponse {
+    string id = 1;
+}
+
+message AddBannerRequest {
+    string banner_id = 1;
+    string slot_id = 2;
+}
+
+message AddBannerResponse {
+    string status = 1;
+}
+
+message DeleteBannerRequest {
+    string banner_id = 1;
+    string slot_id = 2;
+}
+
+message DeleteBannerResponse {
+    string status = 1;
+}
+
+message AddClickRequest {
+    string banner_id = 1;
+    string slot_id = 2;
+    string group_id = 3;
+}
+
+message AddClickResponse {
+    string status = 1;
+}
+
+message AddBannerDisplayRequest {
+    string slot_id = 1;
+    string group_id = 2;
+}
+
+message AddBannerDisplayResponse {
+    string id = 1;
+}

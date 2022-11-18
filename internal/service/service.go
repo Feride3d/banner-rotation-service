@@ -7,7 +7,6 @@ import (
 
 	"github.com/Feride3d/banner-rotation-service/internal/storage"
 	"github.com/Feride3d/banner-rotation-service/internal/storage/models"
-	"github.com/sirupsen/logrus"
 )
 
 type Service struct {
@@ -18,7 +17,6 @@ type Service struct {
 }
 
 type Logger interface {
-	Entry() *logrus.Entry
 	Info(msg string)
 	Warn(msg string)
 	Error(msg string)

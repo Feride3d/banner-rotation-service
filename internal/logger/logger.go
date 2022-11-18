@@ -40,8 +40,6 @@ func New(ctx context.Context, level string, file string) *Logger {
 	return &Logger{logger: log}
 }
 
-func (l Logger) Entry() *logrus.Entry
-
 func (l Logger) Info(msg string) {
 	l.logger.Info(msg)
 }

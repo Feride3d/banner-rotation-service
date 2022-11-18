@@ -1,10 +1,8 @@
 <img src="./readme_assets/header.png" width="100%">
 <p align="center">
-<img src="https://media0.giphy.com/media/kfoSwDAZXewCcITj7B/giphy.gif " width="20%"></p>
+<img src="https://media0.giphy.com/media/kfoSwDAZXewCcITj7B/giphy.gif" width="20%"></p>
 
 <h2 align="center">
-
- [![Go Report Card](https://goreportcard.com/badge/github.com/Feride3d/banner-rotation-service)](https://goreportcard.com/report/github.com/Feride3d/banner-rotation-service) [![Test Coverage](https://api.codeclimate.com/v1/badges/1899cd6b3692b2873a79/test_coverage)](https://codeclimate.com/github/Feride3d/banners-rotation-service/test_coverage)
 
 ## About The Project
 ________
